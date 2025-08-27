@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin from First Principles - Interactive Tutorial</title>
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <style>
+        :root { 
+            color-scheme: light dark; 
+            --brand-orange: #f7931a;
+            --brand-orange-light: #ffb347;
+        }
+        
+        html.dark body { background:#0b0b0b; }
+        html.dark .header-bg { background: linear-gradient(135deg, #0a0a0a 0%, #111 50%, #1a1a1a 100%); }
+        html.dark .bg-white { background:#111 !important; }
+        html.dark .text-gray-700 { color:#d1d5db !important; }
+        html.dark .text-gray-600 { color:#9ca3af !important; }
+        html.dark .text-gray-500 { color:#6b7280 !important; }
+        html.dark .bg-gray-50 { background:#0f1115 !important; }
+        html.dark .border { border-color:#262626 !important; }
+        html.dark .hover\:bg-gray-50:hover { background:#1a1a1a !important; }
+        
+        .brand-gradient-text {
+            background: linear-gradient(45deg, var(--brand-orange), var(--brand-orange-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .brand-orange { color: var(--brand-orange); }
+        
+        .quiz-option {
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .quiz-option:hover {
+            transform: translateY(-1px);
+        }
+        
+        .quiz-option.correct {
+            background-color: #10b981;
+            color: white;
+            border-color: #059669;
+        }
+        
+        .quiz-option.incorrect {
+            background-color: #ef4444;
+            color: white;
+            border-color: #dc2626;
+        }
+        
+        .interactive-demo {
+            border-left: 4px solid var(--brand-orange);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, var(--brand-orange), var(--brand-orange-light));
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        /* Global focus ring */
+        :where(button, [role="button"], input, a):focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255,140,0,.45);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <header class="header-bg bg-gradient-to-br from-orange-600 to-orange-800 text-white py-12">
+        <div class="flex justify-end max-w-6xl mx-auto px-6">
+            <button id="theme-toggle" class="mt-2 inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm">
+                <span id="theme-label">Dark</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 6.95-1.41-1.41M6.46 6.46 5.05 5.05m13.9 0-1.41 1.41M6.46 17.54 5.05 18.95"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="max-w-6xl mx-auto px-6">
+            <h1 class="text-5xl font-bold mb-4">Bitcoin from First Principles</h1>
+            <p class="text-xl mb-8 text-orange-100">An interactive, Socratic exploration of how Bitcoin works</p>
+            
+            <!-- Progress Bar -->
+            <div class="bg-white/20 rounded-full p-1">
+                <div id="progress-bar" class="progress-bar w-0"></div>
+            </div>
+            <p id="progress-text" class="text-sm mt-2 text-orange-100">0 of 11 Principles Understood</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Principle 1: Digital Money Problem -->
+        <section id="principle-1" class="principle-section mb-20">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-4xl font-bold mb-6 brand-gradient-text">The Digital Money Problem</h2>
+                <p class="text-gray-700 text-lg mb-6">
+                    Digital files can be copied infinitely. How do we prevent digital money from being spent twice without a central authority?
+                </p>
+
+                <div class="interactive-demo bg-gray-50 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold mb-4">Double-Spend Demo</h4>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="text-center">
+                            <div class="bg-white p-4 rounded border">
+                                <h5 class="font-medium mb-2">Alice's Balance: 1 BTC</h5>
+                                <button id="send-to-bob" class="quiz-option bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" role="button" tabindex="0">
+                                    Send 1 BTC to Bob
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-white p-4 rounded border">
+                                <h5 class="font-medium mb-2">Alice's Balance: 1 BTC</h5>
+                                <button id="send-to-charlie" class="quiz-option bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" role="button" tabindex="0">
+                                    Send 1 BTC to Charlie
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="double-spend-result" class="mt-4 text-center font-medium"></div>
+                    <p class="mt-3 text-xs text-gray-500">Illustrative demo showing the double-spend problem in digital systems.</p>
+                </div>
+
+                <div class="quiz-section">
+                    <h4 class="text-lg font-semibold mb-4">Check Your Understanding</h4>
+                    <p class="mb-4">Why can't we just copy Bitcoin like other digital files?</p>
+                    <div class="grid gap-3">
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Because Bitcoin files are encrypted
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="true" role="button" tabindex="0">
+                            Because the network tracks ownership and prevents double-spending
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Because Bitcoin is stored on special hardware
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Principle 2: Blockchain Structure -->
+        <section id="principle-2" class="principle-section mb-20">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-4xl font-bold mb-6 brand-gradient-text">Blockchain Structure</h2>
+                <p class="text-gray-700 text-lg mb-6">
+                    Transactions are grouped into blocks, and each block references the previous one, creating a chain that's extremely difficult to alter.
+                </p>
+
+                <div class="interactive-demo bg-gray-50 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold mb-4">Blockchain Tamper Test</h4>
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-4 p-4 bg-white rounded border">
+                            <div class="w-16 h-16 bg-blue-500 rounded flex items-center justify-center text-white font-bold">
+                                Block 1
+                            </div>
+                            <div class="text-sm">
+                                <div>Hash: <span class="font-mono text-xs">000abc123...</span></div>
+                                <div>Prev Hash: <span class="font-mono text-xs">000000000...</span></div>
+                                <input id="block1-data" type="text" value="Alice sends 1 BTC to Bob" class="mt-1 w-full border px-2 py-1 rounded text-xs">
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4 p-4 bg-white rounded border">
+                            <div class="w-16 h-16 bg-blue-500 rounded flex items-center justify-center text-white font-bold">
+                                Block 2
+                            </div>
+                            <div class="text-sm">
+                                <div>Hash: <span class="font-mono text-xs">000def456...</span></div>
+                                <div>Prev Hash: <span class="font-mono text-xs">000abc123...</span></div>
+                                <div class="mt-1 text-xs">Bob sends 0.5 BTC to Charlie</div>
+                            </div>
+                        </div>
+                        <button id="tamper-test" class="quiz-option bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                            Try to Change Block 1 Data
+                        </button>
+                        <div id="tamper-result" class="text-sm font-medium"></div>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500">Illustrative model showing how changing past data breaks the chain.</p>
+                </div>
+
+                <div class="quiz-section">
+                    <h4 class="text-lg font-semibold mb-4">Check Your Understanding</h4>
+                    <p class="mb-4">What happens when someone tries to change a transaction in an old block?</p>
+                    <div class="grid gap-3">
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Nothing, the change goes through
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="true" role="button" tabindex="0">
+                            The hash changes, breaking the chain and alerting the network
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Only the block author can make changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Principle 3: Mempool & Fee Market -->
+        <section id="principle-3" class="principle-section mb-20">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-4xl font-bold mb-6 brand-gradient-text">Mempool & Fee Market</h2>
+                <p class="text-gray-700 text-lg mb-6">
+                    Before transactions get into blocks, they wait in the mempool. Miners prioritize transactions with higher fees, creating a market for block space.
+                </p>
+
+                <div class="interactive-demo bg-gray-50 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold mb-4">Fee Market Simulator</h4>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Your fee rate (sat/vB)
+                                <input id="fee-satvb" type="range" min="1" max="200" value="10" class="w-full mt-1">
+                                <div class="text-center text-sm text-gray-600 mt-1">
+                                    <span id="fee-display">10</span> sat/vB
+                                </div>
+                            </label>
+                            
+                            <label class="block text-sm font-medium mt-4 mb-2">Network congestion
+                                <input id="fee-load" type="range" min="0" max="100" value="60" class="w-full mt-1">
+                                <div class="text-center text-sm text-gray-600 mt-1">
+                                    <span id="load-display">60</span>% full blocks
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="text-center p-4 bg-white rounded border">
+                                <div class="text-2xl font-bold brand-orange" id="fee-eta">~3 blocks</div>
+                                <div class="text-sm text-gray-600">Estimated confirmation time</div>
+                            </div>
+                            <div class="text-center p-4 bg-white rounded border">
+                                <div class="text-2xl font-bold brand-orange" id="fee-priority">Medium</div>
+                                <div class="text-sm text-gray-600">Priority level</div>
+                            </div>
+                            <div class="text-center p-4 bg-white rounded border">
+                                <div class="text-2xl font-bold brand-orange" id="fee-percentile">~70th</div>
+                                <div class="text-sm text-gray-600">Mempool percentile</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="mt-4 text-xs text-gray-500">Illustrative model—not live fee estimates. Actual confirmation times depend on network conditions.</p>
+                </div>
+
+                <div class="quiz-section">
+                    <h4 class="text-lg font-semibold mb-4">Check Your Understanding</h4>
+                    <p class="mb-4">Why do some Bitcoin transactions confirm faster than others?</p>
+                    <div class="grid gap-3">
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Larger transactions are processed first
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="true" role="button" tabindex="0">
+                            Miners prioritize transactions with higher fee rates
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Transactions from verified accounts go first
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Principle 4: UTXO Model -->
+        <section id="principle-4" class="principle-section mb-20">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-4xl font-bold mb-6 brand-gradient-text">UTXO Model</h2>
+                <p class="text-gray-700 text-lg mb-6">
+                    Bitcoin doesn't track balances like a bank account. Instead, your "balance" is a collection of unspent transaction outputs (UTXOs) - like digital coins of different denominations.
+                </p>
+
+                <div class="interactive-demo bg-gray-50 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold mb-4">UTXO Builder</h4>
+                    <p class="text-sm text-gray-600 mb-4">Select UTXOs to spend and see how change is calculated:</p>
+                    
+                    <div id="utxo-list" class="grid md:grid-cols-3 gap-3 mb-6"></div>
+
+                    <div class="bg-white p-4 rounded border">
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Selected Inputs Total:</span>
+                                <span id="utxo-input-sum" class="font-semibold font-mono">0.00000000 ₿</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>Send Amount:</span>
+                                <span>
+                                    <input id="utxo-send" type="number" step="0.00000001" value="0.00100000" 
+                                           class="w-32 border px-2 py-1 rounded text-right font-mono text-xs">
+                                    <span class="ml-1">₿</span>
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Estimated Fee (20 sat/vB):</span>
+                                <span id="utxo-fee" class="font-semibold font-mono">0.00000500 ₿</span>
+                            </div>
+                            <hr class="my-3">
+                            <div class="flex justify-between font-medium">
+                                <span>Change Output:</span>
+                                <span id="utxo-change" class="font-semibold font-mono brand-orange">0.00000000 ₿</span>
+                            </div>
+                            <div id="utxo-error" class="text-red-600 text-xs mt-2"></div>
+                        </div>
+                    </div>
+
+                    <p class="mt-4 text-xs text-gray-500">Illustrative only; not a real wallet. Shows why Bitcoin transactions often need "change" outputs.</p>
+                </div>
+
+                <div class="quiz-section">
+                    <h4 class="text-lg font-semibold mb-4">Check Your Understanding</h4>
+                    <p class="mb-4">Why do Bitcoin transactions often have a "change" output?</p>
+                    <div class="grid gap-3">
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            To pay transaction fees to miners
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="true" role="button" tabindex="0">
+                            Because UTXOs must be spent completely, excess goes back as change
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            To keep transactions private
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Principle 5: Proof of Work -->
+        <section id="principle-5" class="principle-section mb-20">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-4xl font-bold mb-6 brand-gradient-text">Proof of Work</h2>
+                <p class="text-gray-700 text-lg mb-6">
+                    Miners compete to solve computational puzzles. This "proof of work" secures the network by making attacks extremely expensive.
+                </p>
+
+                <div class="interactive-demo bg-gray-50 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold mb-4">Mining Simulation</h4>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-sm mb-2">Block Data: "Alice → Bob: 1 BTC"</p>
+                            <p class="text-sm mb-4">Find a nonce that makes the hash start with zeros:</p>
+                            <div class="space-y-2">
+                                <div class="text-xs font-mono bg-white p-2 rounded border">
+                                    Nonce: <span id="mining-nonce">0</span>
+                                </div>
+                                <div class="text-xs font-mono bg-white p-2 rounded border">
+                                    Hash: <span id="mining-hash">calculating...</span>
+                                </div>
+                            </div>
+                            <button id="mine-button" class="mt-4 quiz-option bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                                Start Mining
+                            </button>
+                        </div>
+                        <div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold brand-orange" id="hash-attempts">0</div>
+                                <div class="text-sm text-gray-600">Hash attempts</div>
+                                <div class="text-2xl font-bold mt-4 brand-orange" id="mining-time">0.0s</div>
+                                <div class="text-sm text-gray-600">Time elapsed</div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-xs text-gray-500">Simplified mining demo. Real Bitcoin mining requires finding hashes with many more leading zeros.</p>
+                </div>
+
+                <div class="quiz-section">
+                    <h4 class="text-lg font-semibold mb-4">Check Your Understanding</h4>
+                    <p class="mb-4">What makes Bitcoin secure against attacks?</p>
+                    <div class="grid gap-3">
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Strong passwords and encryption
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="true" role="button" tabindex="0">
+                            The enormous computational cost of rewriting the blockchain
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Government regulation and oversight
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Principle 6: Network Consensus -->
+        <section id="principle-6" class="principle-section mb-20">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-4xl font-bold mb-6 brand-gradient-text">Network Consensus</h2>
+                <p class="text-gray-700 text-lg mb-6">
+                    Bitcoin operates without central control. The network agrees on the valid chain through consensus rules that all participants follow.
+                </p>
+
+                <div class="quiz-section">
+                    <h4 class="text-lg font-semibold mb-4">Check Your Understanding</h4>
+                    <p class="mb-4">How does Bitcoin achieve consensus without a central authority?</p>
+                    <div class="grid gap-3">
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            A democratic vote by all users
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="true" role="button" tabindex="0">
+                            Nodes follow the longest valid chain with the most proof of work
+                        </button>
+                        <button class="quiz-option text-left p-4 border rounded-lg hover:bg-gray-50" data-correct="false" role="button" tabindex="0">
+                            Miners decide through majority vote
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final Progress Summary -->
+        <section class="principle-section mb-20">
+            <div class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-8 text-center">
+                <h2 class="text-3xl font-bold mb-4 brand-gradient-text">Congratulations!</h2>
+                <p class="text-gray-700 text-lg mb-6">
+                    You've completed the Bitcoin First Principles interactive tutorial. You now understand the core concepts that make Bitcoin work without trust in any central authority.
+                </p>
+                <div class="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🔗</div>
+                        <h4 class="font-semibold">Blockchain Structure</h4>
+                        <p class="text-sm text-gray-600">Immutable chain of transactions</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">⛏️</div>
+                        <h4 class="font-semibold">Proof of Work</h4>
+                        <p class="text-sm text-gray-600">Computational security model</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🌐</div>
+                        <h4 class="font-semibold">Decentralized Consensus</h4>
+                        <p class="text-sm text-gray-600">No single point of control</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <p class="text-gray-300">
+                Built with ❤️ for Bitcoin education. 
+                <a href="#" class="text-orange-300 hover:text-orange-200">Learn more</a>
+            </p>
+            <p class="text-xs text-gray-400 mt-2">
+                All visualizations and numbers are illustrative for educational purposes unless otherwise noted.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Theme toggle functionality
+        (function(){
+            const key = 'theme_preference';
+            const root = document.documentElement;
+            const stored = localStorage.getItem(key);
+            if(stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+                root.classList.add('dark');
+            }
+            function setLabel(){
+                const label = document.getElementById('theme-label');
+                if (label) {
+                    label.textContent = root.classList.contains('dark') ? 'Light' : 'Dark';
+                }
+            }
+            document.getElementById('theme-toggle')?.addEventListener('click', ()=>{
+                root.classList.toggle('dark');
+                localStorage.setItem(key, root.classList.contains('dark') ? 'dark' : 'light');
+                setLabel();
+            });
+            setLabel();
+        })();
+
+        // Progress tracking with persistence
+        const totalPrinciples = 6;
+        const LS_KEY = 'btc_course_progress_v1';
+        
+        function loadProgress(){ 
+            try{ 
+                return new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]')); 
+            } catch { 
+                return new Set(); 
+            } 
+        }
+        
+        function saveProgress(set){ 
+            localStorage.setItem(LS_KEY, JSON.stringify([...set])); 
+        }
+        
+        const completedPrinciples = loadProgress();
+
+        function updateProgress(){
+            const pct = (completedPrinciples.size/totalPrinciples)*100;
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            if (progressBar) progressBar.style.width = pct+'%';
+            if (progressText) {
+                progressText.textContent = `${completedPrinciples.size} of ${totalPrinciples} Principles Understood`;
+            }
+            saveProgress(completedPrinciples);
+        }
+
+        // Quiz functionality
+        function handleQuiz(section) {
+            const sectionEl = document.getElementById(section);
+            if (!sectionEl) return;
+            
+            const options = sectionEl.querySelectorAll('.quiz-option[data-correct]');
+            let allCorrect = true;
+            
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    const isCorrect = option.dataset.correct === 'true';
+                    
+                    // Reset all options in this quiz
+                    options.forEach(opt => {
+                        opt.classList.remove('correct', 'incorrect');
+                        opt.removeAttribute('aria-pressed');
+                    });
+                    
+                    // Mark this option
+                    option.classList.add(isCorrect ? 'correct' : 'incorrect');
+                    option.setAttribute('aria-pressed', 'true');
+                    
+                    if (isCorrect) {
+                        completedPrinciples.add(section);
+                        updateProgress();
+                    } else {
+                        completedPrinciples.delete(section);
+                        updateProgress();
+                        allCorrect = false;
+                    }
+                });
+            });
+        }
+
+        // Initialize quizzes for all principles
+        document.addEventListener('DOMContentLoaded', () => {
+            for (let i = 1; i <= totalPrinciples; i++) {
+                handleQuiz(`principle-${i}`);
+            }
+            updateProgress();
+        });
+
+        // Keyboard navigation for quizzes
+        document.addEventListener('keydown', e=>{
+            const btn = document.activeElement;
+            if(!btn?.classList?.contains('quiz-option')) return;
+            if(e.key==='Enter' || e.key===' '){
+                e.preventDefault();
+                btn.click();
+            }
+        });
+
+        // Make quiz options tabbable and accessible
+        window.addEventListener('DOMContentLoaded', ()=>{
+            document.querySelectorAll('.quiz-option').forEach(b=>{
+                if (!b.hasAttribute('role')) {
+                    b.setAttribute('role','button');
+                }
+                if (!b.hasAttribute('tabindex')) {
+                    b.setAttribute('tabindex','0');
+                }
+            });
+        });
+
+        // Fee Market Simulator
+        (function(){
+            const f = id=>document.getElementById(id);
+            const fee=f('fee-satvb'), load=f('fee-load'), eta=f('fee-eta'), pri=f('fee-priority'), pct=f('fee-percentile');
+            const feeDisplay=f('fee-display'), loadDisplay=f('load-display');
+            
+            if(!fee||!load) return;
+            
+            function paint(){
+                const sat = +fee.value, l = +load.value;
+                
+                // Update display values
+                if (feeDisplay) feeDisplay.textContent = sat;
+                if (loadDisplay) loadDisplay.textContent = l;
+                
+                // Simple fee market model
+                const baseFee = 5 + (l/10); // Base fee increases with congestion
+                const ratio = sat/baseFee;
+                
+                // Calculate blocks to confirmation
+                let blocks;
+                if (ratio >= 2) blocks = 1;
+                else if (ratio >= 1.5) blocks = 2;
+                else if (ratio >= 1) blocks = 3;
+                else if (ratio >= 0.7) blocks = 6;
+                else blocks = Math.min(20, Math.ceil(10/ratio));
+                
+                // Update displays
+                if (eta) eta.textContent = blocks === 1 ? 'next block' : `~${blocks} blocks`;
+                if (pri) pri.textContent = ratio >= 1.5 ? 'High' : ratio >= 1 ? 'Medium' : 'Low';
+                if (pct) pct.textContent = `~${Math.min(99, Math.max(5, Math.round(ratio * 50)))}th`;
+            }
+            
+            [fee,load].forEach(x=>x.addEventListener('input', paint));
+            paint();
+        })();
+
+        // UTXO Builder Demo
+        (function(){
+            const sats = n => (Math.round(n*1e8)/1e8).toFixed(8) + ' ₿';
+            const UTXOS = [0.00340000, 0.00210000, 0.00080000, 0.00120000, 0.00500000, 0.00090000];
+            const list = document.getElementById('utxo-list');
+            const sumEl = document.getElementById('utxo-input-sum');
+            const sendEl = document.getElementById('utxo-send');
+            const feeEl = document.getElementById('utxo-fee');
+            const changeEl = document.getElementById('utxo-change');
+            const errorEl = document.getElementById('utxo-error');
+            
+            if(!list) return;
+
+            const selected = new Set();
+            
+            function render(){
+                list.innerHTML = '';
+                UTXOS.forEach((v, i)=>{
+                    const div = document.createElement('button');
+                    const isSelected = selected.has(i);
+                    div.className = `p-3 rounded border text-left transition-all ${
+                        isSelected 
+                            ? 'bg-green-100 border-green-300 ring-2 ring-green-200' 
+                            : 'bg-white hover:bg-gray-50 border-gray-200'
+                    }`;
+                    div.innerHTML = `
+                        <div class="text-sm font-semibold font-mono">${sats(v)}</div>
+                        <div class="text-xs text-gray-500">UTXO #${i+1}</div>
+                        ${isSelected ? '<div class="text-xs text-green-600 font-medium mt-1">✓ Selected</div>' : ''}
+                    `;
+                    div.addEventListener('click', ()=>{ 
+                        isSelected ? selected.delete(i) : selected.add(i); 
+                        calc(); 
+                        render(); 
+                    });
+                    list.appendChild(div);
+                });
+            }
+            
+            function calc(){
+                const total = [...selected].reduce((a,i)=>a+UTXOS[i],0);
+                const send = parseFloat(sendEl.value||0);
+                const fee = 0.000005; // 500 sat fixed fee for simplicity
+                const change = total - send - fee;
+                
+                if (sumEl) sumEl.textContent = sats(total);
+                if (feeEl) feeEl.textContent = sats(fee);
+                if (changeEl) changeEl.textContent = sats(Math.max(0, change));
+                
+                // Error checking
+                let error = '';
+                if (selected.size === 0) error = 'Select at least one UTXO to spend';
+                else if (total < send + fee) error = 'Insufficient inputs for this transaction';
+                else if (change < 0) error = 'Transaction fee too high';
+                else if (change > 0 && change < 0.00000546) error = 'Change amount too small (dust)';
+                
+                if (errorEl) {
+                    errorEl.textContent = error;
+                    errorEl.style.display = error ? 'block' : 'none';
+                }
+            }
+            
+            sendEl?.addEventListener('input', calc);
+            render(); 
+            calc();
+        })();
+
+        // Double spend demo
+        (function(){
+            const bobBtn = document.getElementById('send-to-bob');
+            const charlieBtn = document.getElementById('send-to-charlie');
+            const result = document.getElementById('double-spend-result');
+            
+            if (!bobBtn || !charlieBtn || !result) return;
+            
+            let sent = [];
+            
+            function handleSend(recipient, btn) {
+                if (sent.length === 0) {
+                    sent.push(recipient);
+                    btn.textContent = `✓ Sent to ${recipient}`;
+                    btn.classList.add('correct');
+                    result.textContent = `Transaction sent to ${recipient}. Alice now has 0 BTC.`;
+                    result.className = 'mt-4 text-center font-medium text-green-600';
+                } else {
+                    result.textContent = `❌ Double-spend detected! Alice already sent her 1 BTC to ${sent[0]}. This transaction would be rejected by the network.`;
+                    result.className = 'mt-4 text-center font-medium text-red-600';
+                    btn.classList.add('incorrect');
+                }
+            }
+            
+            bobBtn.addEventListener('click', () => handleSend('Bob', bobBtn));
+            charlieBtn.addEventListener('click', () => handleSend('Charlie', charlieBtn));
+        })();
+
+        // Blockchain tamper demo
+        (function(){
+            const tamperBtn = document.getElementById('tamper-test');
+            const result = document.getElementById('tamper-result');
+            const input = document.getElementById('block1-data');
+            
+            if (!tamperBtn || !result || !input) return;
+            
+            tamperBtn.addEventListener('click', () => {
+                input.value = "Alice sends 100 BTC to Bob"; // Changed data
+                result.innerHTML = `
+                    <span class="text-red-600">⚠️ Chain broken!</span><br>
+                    Block 1 hash changed to: <span class="font-mono text-xs">000xyz789...</span><br>
+                    Block 2's "previous hash" no longer matches!<br>
+                    <span class="text-xs text-gray-600">The network would reject this tampered chain.</span>
+                `;
+            });
+        })();
+
+        // Simple mining demo
+        (function(){
+            const mineBtn = document.getElementById('mine-button');
+            const nonceEl = document.getElementById('mining-nonce');
+            const hashEl = document.getElementById('mining-hash');
+            const attemptsEl = document.getElementById('hash-attempts');
+            const timeEl = document.getElementById('mining-time');
+            
+            if (!mineBtn) return;
+            
+            let mining = false;
+            let startTime, attempts = 0;
+            
+            // Simple hash function for demo (not cryptographically secure)
+            function simpleHash(data) {
+                let hash = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const char = data.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32bit integer
+                }
+                return Math.abs(hash).toString(16).padStart(8, '0');
+            }
+            
+            function mine() {
+                if (!mining) return;
+                
+                const data = "Alice→Bob:1BTC";
+                const nonce = attempts;
+                const hash = simpleHash(data + nonce);
+                
+                if (nonceEl) nonceEl.textContent = nonce;
+                if (hashEl) hashEl.textContent = hash;
+                if (attemptsEl) attemptsEl.textContent = attempts;
+                
+                const elapsed = (Date.now() - startTime) / 1000;
+                if (timeEl) timeEl.textContent = elapsed.toFixed(1) + 's';
+                
+                attempts++;
+                
+                // Check if hash starts with zeros (simplified - real Bitcoin needs many more)
+                if (hash.startsWith('00')) {
+                    mining = false;
+                    mineBtn.textContent = '🎉 Block Mined!';
+                    mineBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                    mineBtn.classList.add('bg-green-500');
+                    if (hashEl) hashEl.parentElement.classList.add('bg-green-100');
+                } else {
+                    setTimeout(mine, 50); // Slow down for visualization
+                }
+            }
+            
+            mineBtn.addEventListener('click', () => {
+                if (!mining) {
+                    mining = true;
+                    attempts = 0;
+                    startTime = Date.now();
+                    mineBtn.textContent = 'Mining...';
+                    mineBtn.classList.add('bg-yellow-600');
+                    if (hashEl) hashEl.parentElement.classList.remove('bg-green-100');
+                    mine();
+                }
+            });
+        })();
+
+        // Lazy loading for charts (when Chart.js is available)
+        const chartObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && window.Chart) {
+                    // Initialize charts here when they become visible
+                    chartObserver.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        // Observe canvas elements when they're added
+        document.querySelectorAll('canvas').forEach(canvas => {
+            chartObserver.observe(canvas);
+        });
+    </script>
+</body>
+</html>
