@@ -269,6 +269,92 @@
             </div>
         </section>
 
+        <!-- Principle 8: Lightning Routing & Liquidity -->
+        <section id="principle-8-lightning" class="principle-section mb-20">
+          <div class="bg-white rounded-lg shadow-lg p-8 max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold mb-6 brand-gradient-text">Lightning: Routing & Liquidity</h2>
+
+            <p class="text-gray-700 mb-4">
+              Lightning payments travel across channels with limited capacity and directional liquidity. This demo shows why a route may succeed or fail depending on fees, capacity, and path availability.
+            </p>
+
+            <div class="interactive-demo bg-gray-50 p-6">
+              <!-- Controls -->
+              <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white p-4 rounded border">
+                  <h5 class="font-semibold mb-2">Payment Parameters</h5>
+                  <div class="space-y-3 text-sm">
+                    <label class="block">Amount (sats)
+                      <input id="ln-amount" type="number" value="15000" min="1" step="1" class="w-full border rounded px-2 py-1 mt-1">
+                    </label>
+                    <label class="block">Max Total Fee (sats)
+                      <input id="ln-maxfee" type="number" value="50" min="0" step="1" class="w-full border rounded px-2 py-1 mt-1">
+                    </label>
+                    <label class="block">Try Alt Paths
+                      <input id="ln-try-alt" type="checkbox" class="ml-2 align-middle">
+                    </label>
+                  </div>
+                  <button id="ln-send" class="mt-4 brand-gradient hover:opacity-90 text-white px-4 py-2 rounded font-semibold">
+                    Find Route & Send
+                  </button>
+                  <p class="mt-2 text-xs text-gray-500">Illustrative only—this is not a real wallet or network.</p>
+                </div>
+
+                <!-- Graph -->
+                <div class="bg-white p-4 rounded border">
+                  <h5 class="font-semibold mb-2">Channel Graph (Toy)</h5>
+                  <div class="text-xs text-gray-600 mb-2">Node balances are directional. Each edge shows <em>local → remote</em> capacity.</div>
+
+                  <div id="ln-graph" class="grid grid-cols-3 gap-3">
+                    <!-- A, B, C on row 1 -->
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-full bg-blue-500 text-white mx-auto flex items-center justify-center font-bold">A</div>
+                      <div class="text-xs mt-1">Alice (sender)</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-full bg-blue-500 text-white mx-auto flex items-center justify-center font-bold">B</div>
+                      <div class="text-xs mt-1">Bob</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-full bg-blue-500 text-white mx-auto flex items-center justify-center font-bold">C</div>
+                      <div class="text-xs mt-1">Carol</div>
+                    </div>
+                    <!-- D, E, F on row 2 -->
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-full bg-blue-500 text-white mx-auto flex items-center justify-center font-bold">D</div>
+                      <div class="text-xs mt-1">Dan</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-full bg-green-600 text-white mx-auto flex items-center justify-center font-bold">R</div>
+                      <div class="text-xs mt-1">Rita (receiver)</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="w-12 h-12 rounded-full bg-blue-500 text-white mx-auto flex items-center justify-center font-bold">F</div>
+                      <div class="text-xs mt-1">Frank</div>
+                    </div>
+                  </div>
+
+                  <!-- Edge list for readability -->
+                  <div class="mt-4">
+                    <h6 class="font-semibold text-sm mb-1">Channels (local → remote capacity / base+ppm fee)</h6>
+                    <ul class="text-xs space-y-1 text-gray-700" id="ln-edges">
+                      <!-- will be filled by script -->
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Result -->
+              <div id="ln-result" class="mt-6 hidden">
+                <div class="p-4 rounded border-l-4" id="ln-result-box">
+                  <div class="font-semibold mb-1" id="ln-result-title"></div>
+                  <div class="text-sm" id="ln-result-body"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Principle 4: UTXO Model -->
         <section id="principle-4" class="principle-section mb-20">
             <div class="bg-white rounded-lg shadow-lg p-8">
@@ -800,6 +886,143 @@
         document.querySelectorAll('canvas').forEach(canvas => {
             chartObserver.observe(canvas);
         });
+
+        // Lightning Routing Path Simulator
+        /**
+         * Simple Lightning route finder:
+         * - Nodes: A(sender), B, C, D, F, R(receiver)
+         * - Directed edges with: capacity (sats), baseFee (sats), ppm (parts per million)
+         * - We try to find a path within capacity and total fees <= maxFee.
+         * - If "Try Alt Paths" checked, we explore multiple simple paths (DFS limited depth).
+         */
+        (function(){
+          const edges = [
+            // from, to, capacity, base, ppm
+            ['A','B', 20000, 1, 200], // 0.02% ppm ~ 200 ppm
+            ['B','R', 12000, 1, 50],
+            ['A','C',  9000,  1, 100],
+            ['C','R',  9000,  1, 50],
+            ['A','D', 30000,  1, 300],
+            ['D','F', 30000,  1, 150],
+            ['F','R', 30000,  1, 50],
+            ['B','C',  8000,  1, 120],
+            ['C','B',  5000,  1, 120],
+          ];
+
+          // Render edge list
+          const list = document.getElementById('ln-edges');
+          if(list){
+            list.innerHTML = edges.map(([u,v,cap,base,ppm]) =>
+              `<li>${u} → ${v} : ${cap.toLocaleString()} sats • fee: base ${base} + ${ppm}ppm</li>`
+            ).join('');
+          }
+
+          function feeForHop(amount, base, ppm){
+            // fee = base + (amount * ppm / 1e6)
+            return base + Math.ceil(amount * (ppm/1e6));
+          }
+
+          // Small DFS to a depth of 5 to find simple paths A -> R
+          function findPaths(graph, start, goal, maxDepth=5){
+            const out = [];
+            function dfs(node, path, visited){
+              if(path.length > maxDepth) return;
+              if(node === goal){ out.push(path.slice()); return; }
+              for(const e of graph){
+                const [u,v] = e;
+                if(u!==node) continue;
+                // prevent simple cycles
+                if(visited.has(v)) continue;
+                visited.add(v);
+                path.push(e);
+                dfs(v, path, visited);
+                path.pop();
+                visited.delete(v);
+              }
+            }
+            dfs(start, [], new Set([start]));
+            // produce node-path form, e.g., [A→B,B→R] => nodes [A,B,R]
+            return out;
+          }
+
+          // Evaluate a path for capacity + fees (forward)
+          function tryPath(path, amount, maxFee){
+            let running = amount;
+            let totalFee = 0;
+            for(const [, , cap, base, ppm] of path){
+              if(cap < running) return {ok:false, reason:`Insufficient capacity on hop requiring ${running} sats (cap ${cap})`};
+              const hopFee = feeForHop(running, base, ppm);
+              totalFee += hopFee;
+              running += hopFee; // amount grows as you include fees forward
+              if(totalFee > maxFee) return {ok:false, reason:`Fees exceed max (${totalFee} > ${maxFee})`};
+            }
+            return {ok:true, totalFee, finalSend: running};
+          }
+
+          function uniqueSimplePaths(all){
+            // Dedup by node sequence
+            const seen = new Set();
+            const out = [];
+            for(const p of all){
+              const nodes = [p[0][0], ...p.map(e=>e[1])].join('→');
+              if(!seen.has(nodes)){ seen.add(nodes); out.push(p); }
+            }
+            return out;
+          }
+
+          function chooseFirstFeasible(paths, amount, maxFee){
+            for(const p of paths){
+              const check = tryPath(p, amount, maxFee);
+              if(check.ok) return {path:p, ...check};
+            }
+            return null;
+          }
+
+          // Wire UI
+          const btn = document.getElementById('ln-send');
+          const amountEl = document.getElementById('ln-amount');
+          const maxFeeEl = document.getElementById('ln-maxfee');
+          const altEl = document.getElementById('ln-try-alt');
+          const resultWrap = document.getElementById('ln-result');
+          const resultBox  = document.getElementById('ln-result-box');
+          const resultTitle= document.getElementById('ln-result-title');
+          const resultBody = document.getElementById('ln-result-body');
+
+          btn?.addEventListener('click', ()=>{
+            const amt = Math.max(1, parseInt(amountEl.value||'1',10));
+            const maxFee = Math.max(0, parseInt(maxFeeEl.value||'0',10));
+            const allPaths = findPaths(edges, 'A', 'R', 5);
+            const candidatePaths = altEl.checked ? uniqueSimplePaths(allPaths) : uniqueSimplePaths(allPaths).slice(0,3);
+
+            const feasible = chooseFirstFeasible(candidatePaths, amt, maxFee);
+
+            resultWrap.classList.remove('hidden');
+            if(!feasible){
+              resultBox.className = "p-4 rounded border-l-4 border-red-500 bg-red-50";
+              resultTitle.textContent = "Payment Failed";
+              resultBody.innerHTML = `
+                No route found within capacity/fee constraints.
+                <div class="mt-2 text-xs text-gray-700">
+                  Tips: lower amount, raise max fee, or enable alternate paths.
+                </div>`;
+              return;
+            }
+
+            const {path, totalFee, finalSend} = feasible;
+            const nodes = ['A', ...path.map(([u,v])=>v)].join(' → ');
+            const hops  = path.length;
+
+            resultBox.className = "p-4 rounded border-l-4 border-green-500 bg-green-50";
+            resultTitle.textContent = "Payment Succeeded";
+            resultBody.innerHTML = `
+              <div><span class="font-semibold">Route:</span> ${nodes} (${hops} hop${hops>1?'s':''})</div>
+              <div><span class="font-semibold">Send:</span> ${amt.toLocaleString()} sats</div>
+              <div><span class="font-semibold">Total fees:</span> ${totalFee.toLocaleString()} sats</div>
+              <div><span class="font-semibold">Total forwarded (incl. fees):</span> ${finalSend.toLocaleString()} sats</div>
+              <div class="text-xs text-gray-600 mt-2">Fees and capacities are illustrative. Real routing considers CLTV, HTLC limits, inbound/outbound liquidity, etc.</div>
+            `;
+          });
+        })();
     </script>
 </body>
 </html>
