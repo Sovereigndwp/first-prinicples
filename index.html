@@ -32,6 +32,10 @@
         
         .brand-orange { color: var(--brand-orange); }
         
+        .brand-gradient {
+            background: linear-gradient(45deg, var(--brand-orange), var(--brand-orange-light));
+        }
+        
         .quiz-option {
             transition: all 0.2s;
             cursor: pointer;
@@ -92,7 +96,7 @@
             <div class="bg-white/20 rounded-full p-1">
                 <div id="progress-bar" class="progress-bar w-0"></div>
             </div>
-            <p id="progress-text" class="text-sm mt-2 text-orange-100">0 of 11 Principles Understood</p>
+            <p id="progress-text" class="text-sm mt-2 text-orange-100">0 of 8 Principles Understood</p>
         </div>
     </header>
 
@@ -605,7 +609,7 @@
         })();
 
         // Progress tracking with persistence
-        const totalPrinciples = 6;
+        const totalPrinciples = 8;
         const LS_KEY = 'btc_course_progress_v1';
         
         function loadProgress(){ 
